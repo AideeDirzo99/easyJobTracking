@@ -1,6 +1,6 @@
 <template>
   <q-layout view="lHh Lpr lFf">
-    <q-header elevated class="custom-header">
+    <q-header bordered class="custom-header">
       <q-toolbar>
         <q-toolbar-title>
           <div class="logo-container"><img src="/Logo2.png" /></div>
