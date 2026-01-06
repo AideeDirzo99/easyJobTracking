@@ -22,8 +22,22 @@
             />
           </template>
         </q-input>
-        <q-btn unelevated rounded color="secondary" label="Ingresar" />
-        <q-btn outline rounded color="secondary" label="Crear cuenta" />
+        <q-btn
+          :loading="isLoading"
+          unelevated
+          rounded
+          color="secondary"
+          label="Ingresar"
+          @click="handleLogIn"
+        />
+        <q-btn
+          :loading="isLoading"
+          outline
+          rounded
+          color="secondary"
+          label="Crear cuenta"
+          @click="handleSignUp"
+        />
       </div>
     </div>
 
@@ -34,11 +48,133 @@
 </template>
 
 <script setup lang="ts">
+import { Notify } from 'quasar';
+import { logInUser, signUpUser } from 'src/API/authApi';
 import { ref } from 'vue';
+import { useRouter } from 'vue-router';
 
 const password = ref('');
 const isPwd = ref(true);
 const email = ref('');
+const router = useRouter();
+const isLoading = ref(false);
+
+const handleLogIn = async () => {
+  if (!isValidEmail(email.value)) {
+    Notify.create({
+      type: 'negative',
+      message: 'Email no válido',
+      position: 'top',
+    });
+    return;
+  }
+  if (!isValidPassword(password.value)) {
+    Notify.create({
+      type: 'negative',
+      message: 'La contraseña debe tener al menos 6 caracteres y no contener espacios.',
+      position: 'top',
+    });
+    return;
+  }
+  try {
+    isLoading.value = true;
+    //TODO: move to services folder if additional business logic is added
+    await logInUser(email.value, password.value);
+    await router.push('/main');
+
+    Notify.create({
+      type: 'positive',
+      message: 'Inicio de sesión exitoso. ¡Bienvenido de nuevo a EmpleoTrack!',
+      position: 'top',
+    });
+  } catch (error) {
+    isLoading.value = false;
+    console.error('Error during sign up:', error);
+    Notify.create({
+      type: 'negative',
+      message: 'Hubo un error al iniciar sesión. Por favor, revisa tus datos o inténtalo de nuevo.',
+      position: 'top',
+    });
+  }
+};
+
+const handleSignUp = async () => {
+  if (!isValidEmail(email.value)) {
+    Notify.create({
+      type: 'negative',
+      message: 'Email no válido',
+      position: 'top',
+    });
+    return;
+  }
+  if (!isValidPassword(password.value)) {
+    Notify.create({
+      type: 'negative',
+      message: 'La contraseña debe tener al menos 6 caracteres y no contener espacios.',
+      position: 'top',
+    });
+    return;
+  }
+  try {
+    isLoading.value = true;
+    //TODO: move to services folder if additional business logic is added
+    await signUpUser(email.value, password.value);
+    await router.push('/main');
+
+    Notify.create({
+      type: 'positive',
+      message: 'Cuenta creada exitosamente. Bienvenido a EmpleoTrack!',
+      position: 'top',
+    });
+  } catch (error) {
+    isLoading.value = false;
+    console.error('Error during sign up:', error);
+    Notify.create({
+      type: 'negative',
+      message:
+        'Hubo un error al crear la cuenta. Por favor, revisa tus datos o inténtalo de nuevo.',
+      position: 'top',
+    });
+  }
+};
+
+/**
+ * Checks whether a password meets basic security requirements.
+ *
+ * Rules:
+ * - Minimum length of 6 characters
+ * - At least one letter
+ * - At least one number
+ * - No spaces allowed
+ */
+const isValidPassword = (value: string): boolean => {
+  if (!value) return false;
+
+  const password = value.trim();
+
+  if (password.length < 6) return false;
+  if (password.includes(' ')) return false;
+
+  return true;
+};
+
+/**
+ * Checks whether a string is a syntactically valid email address.
+ * Note: this validates format only; it does not verify domain or mailbox existence.
+ */
+const isValidEmail = (value: string): boolean => {
+  if (!value) return false;
+
+  const email = value.trim();
+
+  // Basic sanity checks
+  if (email.length > 254) return false;
+
+  // Pragmatic, widely-used email format regex (not fully RFC exhaustive, but robust for apps)
+  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)+$/;
+
+  return emailRegex.test(email);
+};
 </script>
 
 <style scoped lang="scss">
