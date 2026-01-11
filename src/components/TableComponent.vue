@@ -1,12 +1,66 @@
 <template>
   <div class="q-pa-md">
-    <q-table title="Candidaturas" :rows="rows" :columns="columns" row-key="name" />
+    <q-table
+      :loading="isLoading"
+      title="Candidaturas"
+      :rows="jobStore.userJobs"
+      :columns="columns"
+      row-key="jobId"
+    >
+      <template #body-cell-actions="props">
+        <q-td :props="props">
+          <q-btn
+            flat
+            dense
+            round
+            icon="edit"
+            color="grey-8"
+            @click="handleEditJob(props.row)"
+            :disable="isLoading"
+          />
+          <q-btn
+            flat
+            dense
+            round
+            icon="delete"
+            color="red-6"
+            @click="handleDeleteJob(props.row)"
+            :disable="isLoading"
+          />
+        </q-td>
+      </template>
+    </q-table>
+
+    <!-- Dialog -->
+    <q-dialog v-model="isDialogOpen">
+      <q-card style="min-width: 400px; max-width: 90vw">
+        <q-card-section class="row items-center">
+          <div class="text-h6">Editar trabajo</div>
+          <q-space />
+          <q-btn icon="close" flat round dense @click="closeDialog" />
+        </q-card-section>
+
+        <q-separator />
+
+        <q-card-section>
+          <form-new-job-component :jobToEdit="jobToSend" @handleClose="closeDialog" />
+        </q-card-section>
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import type { QTableProps } from 'quasar';
+import { Notify, type QTableProps } from 'quasar';
 import type { JobData } from 'src/interfaces/global';
+import { useJobStore } from 'src/stores/jobStore';
+import { onMounted, ref } from 'vue';
+import FormNewJobComponent from 'components/FormNewJobComponent.vue';
+
+const jobStore = useJobStore();
+const isLoading = ref(false);
+const isDialogOpen = ref(false);
+const jobToSend = ref();
 
 const columns: QTableProps['columns'] = [
   {
@@ -26,82 +80,57 @@ const columns: QTableProps['columns'] = [
     sortable: true,
   },
   { name: 'notes', label: 'Notas', field: 'notes' },
+  {
+    name: 'actions',
+    label: 'Acciones',
+    align: 'center',
+    field: 'actions',
+  },
 ];
 
-const rows: Array<JobData> = [
-  {
-    id: 1,
-    jobName: 'Junior Front End Developer',
-    company: 'Tech Solutions',
-    platform: 'LinkedIn',
-    status: [
-      { phase: 'Applied', date: '2024-01-15' },
-      { phase: 'Interview', date: '2024-01-22' },
-    ],
-    notes: 'Follow up in two weeks.',
-  },
-  {
-    id: 2,
-    jobName: 'Vue.js Developer',
-    company: 'Digital Labs',
-    platform: 'InfoJobs',
-    status: [
-      { phase: 'Applied', date: '2024-02-03' },
-      { phase: 'Interview', date: '2024-02-10' },
-      { phase: 'Offer', date: '2024-02-18' },
-    ],
-    notes: 'Offer received, reviewing conditions.',
-  },
-  {
-    id: 3,
-    jobName: 'Frontend Engineer',
-    company: 'Startup Hub',
-    platform: 'Indeed',
-    status: [
-      { phase: 'Applied', date: '2024-02-20' },
-      { phase: 'Rejected', date: '2024-02-27' },
-    ],
-    notes: 'Rejected after technical test.',
-  },
-  {
-    id: 4,
-    jobName: 'Software Developer (Junior)',
-    company: 'Innovatech',
-    platform: 'LinkedIn',
-    status: [{ phase: 'Applied', date: '2024-03-01' }],
-    notes: 'Waiting for response.',
-  },
-  {
-    id: 5,
-    jobName: 'Frontend Developer',
-    company: 'E-commerce Pro',
-    platform: 'Computrabajo',
-    status: [
-      { phase: 'Applied', date: '2024-03-05' },
-      { phase: 'Interview', date: '2024-03-12' },
-      { phase: 'Interview', date: '2024-03-19' },
-    ],
-    notes: 'Second interview scheduled with tech lead.',
-  },
-  {
-    id: 6,
-    jobName: 'Web Developer',
-    company: 'Creative Agency',
-    platform: 'Otro',
-    status: [
-      { phase: 'Applied', date: '2024-03-10' },
-      { phase: 'Interview', date: '2024-03-15' },
-      { phase: 'Rejected', date: '2024-03-20' },
-    ],
-    notes: 'Good feedback, but chose another candidate.',
-  },
-  {
-    id: 7,
-    jobName: 'Junior Software Engineer',
-    company: 'FinTech Corp',
-    platform: 'LinkedIn',
-    status: [{ phase: 'Applied', date: '2024-03-18' }],
-    notes: 'Referral sent by former colleague.',
-  },
-];
+const closeDialog = () => {
+  isDialogOpen.value = false;
+};
+
+const handleEditJob = (job: JobData) => {
+  isDialogOpen.value = true;
+  jobToSend.value = job;
+};
+
+const handleDeleteJob = async (job: JobData) => {
+  try {
+    isLoading.value = true;
+    await jobStore.deleteJob(job.id);
+    Notify.create({
+      type: 'positive',
+      message: 'Candidatura eliminada',
+      position: 'top',
+    });
+    isLoading.value = false;
+  } catch (error) {
+    isLoading.value = false;
+    console.error('Error deleting job:', error);
+    Notify.create({
+      type: 'negative',
+      message: 'Error al eliminar la candidatura',
+      position: 'top',
+    });
+  }
+};
+
+onMounted(async () => {
+  try {
+    isLoading.value = true;
+    await jobStore.getJobs();
+    isLoading.value = false;
+  } catch (error) {
+    isLoading.value = false;
+    console.error('Error getting jobs:', error);
+    Notify.create({
+      type: 'negative',
+      message: 'Error al obtener las candidaturas',
+      position: 'top',
+    });
+  }
+});
 </script>

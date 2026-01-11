@@ -20,7 +20,7 @@
         <q-separator />
 
         <q-card-section>
-          <form-new-job-component />
+          <form-new-job-component @handleClose="closeDialog" />
         </q-card-section>
       </q-card>
     </q-dialog>
